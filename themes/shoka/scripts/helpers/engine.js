@@ -8,49 +8,57 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const randomServer = parseInt(Math.random()*4,10)+1
+const randomServer = parseInt(Math.random() * 4, 10) + 1
 
-const randomBG = function(count = 1, image_server = null, image_list = []) {
-  if (image_server) {
-    if(count && count > 1) {
-      var arr = new Array(count);
-      for(var i=0; i < arr.length; i++){
-        arr[i] = image_server + '?' + Math.floor(Math.random() * 999999)
-      }
+const randomBG = function (count = 1, image_server = null, image_list = []) {
+  image_server = null // disable image server
 
-      return arr;
-    }
-
-    return image_server + '?' + Math.floor(Math.random() * 999999)
+  // fallback when image_list is empty
+  if (!Array.isArray(image_list) || image_list.length === 0) {
+    image_list = hexo.theme.config.image_list || []
   }
 
-  var parseImage = function(img, size) {
+  if (image_list.length === 0) {
+    return []
+  }
+
+  var parseImage = function (img) {
+    if (!img || typeof img !== 'string') {
+      return ''
+    }
+
     if (img.startsWith('//') || img.startsWith('http')) {
       return img
-    } else {
-      return 'https://tva'+randomServer+'.sinaimg.cn/'+size+'/'+img
     }
+
+    return url_for.call(hexo, '/assets/covers/' + img)
   }
 
-  if(count && count > 1) {
-    var shuffled = image_list.slice(0), i = image_list.length, min = i - count, temp, index;
+  if (count && count > 1) {
+    var shuffled = image_list.slice(0),
+      i = image_list.length,
+      min = i - count,
+      temp,
+      index
+
     while (i-- > min) {
-      index = Math.floor((i + 1) * Math.random());
-      temp = shuffled[index];
-      shuffled[index] = shuffled[i];
-      shuffled[i] = temp;
+      index = Math.floor((i + 1) * Math.random())
+      temp = shuffled[index]
+      shuffled[index] = shuffled[i]
+      shuffled[i] = temp
     }
 
-    return shuffled.slice(min).map(function(img) {
-      return parseImage(img, 'large')
-    });
+    return shuffled.slice(min).map(img => parseImage(img))
   }
 
-  return parseImage(image_list[Math.floor(Math.random() * image_list.length)], 'mw690')
+  // MUST RETURN ARRAY
+  return [
+    parseImage(image_list[Math.floor(Math.random() * image_list.length)])
+  ]
 }
 
-hexo.extend.helper.register('_url', function(path, text, options = {}) {
-  if(!path)
+hexo.extend.helper.register('_url', function (path, text, options = {}) {
+  if (!path)
     return
 
   const { config } = this;
@@ -68,7 +76,7 @@ hexo.extend.helper.register('_url', function(path, text, options = {}) {
     exturl = 'exturl';
     const encoded = Buffer.from(path).toString('base64');
     attrs = {
-      class     : exturl,
+      class: exturl,
       'data-url': encoded
     };
   }
@@ -107,7 +115,7 @@ hexo.extend.helper.register('_url', function(path, text, options = {}) {
   return htmlTag(tag, attrs, decodeURI(text), false);
 });
 
-hexo.extend.helper.register('_image_url', function(img, path = '') {
+hexo.extend.helper.register('_image_url', function (img, path = '') {
   const { statics } = hexo.theme.config;
   const { post_asset_folder } = hexo.config;
 
@@ -118,26 +126,47 @@ hexo.extend.helper.register('_image_url', function(img, path = '') {
   }
 })
 
-hexo.extend.helper.register('_cover', function(item, num) {
-  const { statics, js, image_server, image_list } = hexo.theme.config;
+hexo.extend.helper.register('_cover', function (item, num = 1) {
+  const { image_list } = hexo.theme.config;
 
-  if(item.cover) {
-    return this._image_url(item.cover, item.path)
-  } else if (item.photos && item.photos.length > 0) {
-    return this._image_url(item.photos[0], item.path)
-  } else {
-    return randomBG(num || 1, image_server, image_list);
+  // 1️⃣ Post has cover
+  if (item.cover) {
+    return this._image_url(item.cover, item.path);
   }
 
-})
+  // 2️⃣ Post has photos
+  if (item.photos && item.photos.length > 0) {
+    return this._image_url(item.photos[0], item.path);
+  }
 
-hexo.extend.helper.register('_md5', function(path) {
+  // 3️⃣ Fallback to random image(s) from image_list
+  const bg = Array.isArray(image_list) ? image_list : [];
+  if (bg.length === 0) return num > 1 ? [] : '';
+
+  if (num > 1) {
+    // return `num` random images without duplicates
+    const shuffled = bg.slice(0);
+    const results = [];
+    for (let i = 0; i < num; i++) {
+      const idx = Math.floor(Math.random() * shuffled.length);
+      results.push(url_for.call(this, '/assets/covers/' + shuffled.splice(idx, 1)[0]));
+      if (shuffled.length === 0) break;
+    }
+    return results;
+  }
+
+  // single image fallback
+  const idx = Math.floor(Math.random() * bg.length);
+  return url_for.call(this, '/assets/covers/' + bg[idx]);
+});
+
+hexo.extend.helper.register('_md5', function (path) {
   let str = url_for.call(this, path);
   str.replace('index.html', '');
   return crypto.createHash('md5').update(str).digest('hex');
 });
 
-hexo.extend.helper.register('_permapath', function(str) {
+hexo.extend.helper.register('_permapath', function (str) {
   // https://support.google.com/webmasters/answer/139066
   const { permalink } = hexo.config;
   let url = str.replace(/index\.html$/, '');
@@ -147,14 +176,14 @@ hexo.extend.helper.register('_permapath', function(str) {
   return url;
 });
 
-hexo.extend.helper.register('canonical', function() {
+hexo.extend.helper.register('canonical', function () {
   return `<link rel="canonical" href="${this._permapath(this.url)}">`;
 });
 
 /**
  * Get page path given a certain language tag
  */
-hexo.extend.helper.register('i18n_path', function(language) {
+hexo.extend.helper.register('i18n_path', function (language) {
   const { path, lang } = this.page;
   const base = path.startsWith(lang) ? path.slice(lang.length + 1) : path;
   return url_for.call(this, `${this.languages.indexOf(language) === 0 ? '' : '/' + language}/${base}`);
@@ -163,7 +192,7 @@ hexo.extend.helper.register('i18n_path', function(language) {
 /**
  * Get the language name
  */
-hexo.extend.helper.register('language_name', function(language) {
+hexo.extend.helper.register('language_name', function (language) {
   const name = hexo.theme.i18n.__(language)('name');
   return name === 'name' ? language : name;
 });
