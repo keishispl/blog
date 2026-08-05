@@ -1,0 +1,31 @@
+contentDir: src/posts
+assetsDir: src/assets
+databaseDir: .hyacine
+defaultCategories:
+postExtension:
+  - .md
+  - .mdx
+assetResolution: standard
+
+themeConfigPath: src/theme.config.ts
+themeConfigDefPath: src/toolkit/themeConfig.ts
+themeConfigDefType: ShokaXThemeConfig
+themeConfigTemplatePath: src/theme.config.template.txt
+
+fonts:
+  - path: src/assets/fonts/LXGWWenKai-Regular.ttf
+    type: standard
+  - path: src/assets/fonts/MapleMono-CN-Regular.ttf
+    type: monospace
+
+images:
+  - path: src/assets/avatar.avif
+  - path: src/assets/favicon.ico
+  - path: src/assets/failure.ico
+  - path: src/assets/404.png
+  - path: src/assets/images/maimai_salt.jpeg
+  - path: src/assets/images/rabbit_cocoa_chino.jpeg
+  - path: src/assets/images/rabbit_ribbon_cute.jpeg
+  - path: src/assets/images/sweets_time_flandre_scarlet.jpg
+  - path: src/assets/images/white_blue_yellow_nekomimi.jpeg
+  - path: src/assets/images/white_cake_kemomimi.jpeg

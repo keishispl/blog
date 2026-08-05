@@ -1,0 +1,1 @@
+Forked from [Astro ShokaX](https://github.com/theme-shoka-x/astro-blog-shokax).
